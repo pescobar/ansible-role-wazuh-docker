@@ -1,2 +1,74 @@
 ---
 # tasks file for ansible-role-wazuh-docker
+
+# https://documentation.wazuh.com/current/docker/wazuh-container.html#container-memory
+- name: Make sure that the host has at least 8GB of ram
+  assert:
+    that: ansible_memtotal_mb >= 8192
+    fail_msg: Wazuh requires more ram. Check https://documentation.wazuh.com/current/docker/wazuh-container.html#container-memory
+
+# https://documentation.wazuh.com/current/docker/wazuh-container.html#increase-max-map-count-on-your-host-linux
+- name: Configure vm.max_map_count
+  sysctl:
+    name: vm.max_map_count
+    state: present
+    value: "{{ wazuh_docker_max_map_count }}"
+
+- name: Install epel repo
+  package:
+    name: epel-release
+    state: installed
+
+- name: Install python-pip
+  package:
+    name: python-pip
+    state: installed
+
+- name: pip install python-docker
+  pip:
+    name: docker
+
+- name: pip install docker-compose
+  pip:
+    name: docker-compose
+
+- name: Install git
+  package:
+    name: git
+    state: installed
+
+
+- name: Download the latest release of wazuh-docker repo to /opt/
+  block:
+
+    - name: Query what is the latest release of wazuh-docker
+      uri:
+        url: https://api.github.com/repos/wazuh/wazuh-docker/releases/latest
+        method: GET
+        return_content: yes
+        status_code: 200
+        body_format: json
+      register: result_json
+      changed_when: false
+
+    - name: Git clone the latest release of wazuh-docker to /opt
+      git:
+        dest: /opt/wazuh-docker
+        repo: https://github.com/wazuh/wazuh-docker.git
+        version: "{{ (result_json.content|from_json).tag_name }}"
+
+  when: wazuh_docker_version == "latest"
+
+
+- name: Git clone a custom release of wazuh-docker to /opt
+  git:
+    dest: /opt/wazuh-docker
+    repo: https://github.com/wazuh/wazuh-docker.git
+    version: "{{ wazuh_docker_version }}"
+  when: wazuh_docker_version != "latest"
+
+
+- name: Start the Wazuh containers
+  docker_service:
+    project_src: /opt/wazuh-docker
+    state: present

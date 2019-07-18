@@ -1,2 +1,9 @@
 ---
 # defaults file for ansible-role-wazuh-docker
+
+wazuh_docker_install_docker_daemon: true
+
+# https://documentation.wazuh.com/current/docker/wazuh-container.html#increase-max-map-count-on-your-host-linux
+wazuh_docker_max_map_count: 262144
+
+wazuh_docker_version: "latest"
