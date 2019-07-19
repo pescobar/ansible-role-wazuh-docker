@@ -19,8 +19,8 @@ wazuh_docker_version: "3.9.2_7.1.1"
 Dependencies
 ------------
 
-[geerlingguy.docker](https://galaxy.ansible.com/geerlingguy/docker)
-[robertdebock.selinux](https://galaxy.ansible.com/robertdebock/selinux)
+* [geerlingguy.docker](https://galaxy.ansible.com/geerlingguy/docker)
+* [robertdebock.selinux](https://galaxy.ansible.com/robertdebock/selinux)
 
 **the selinux role will reboot the host if selinux is enabled**
 
