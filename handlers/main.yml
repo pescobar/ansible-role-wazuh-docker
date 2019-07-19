@@ -1,2 +1,8 @@
 ---
 # handlers file for ansible-role-wazuh-docker
+
+- name: restart wazuh containers
+  docker_service:
+    project_src: /opt/wazuh-docker
+    state: present
+    restarted: yes

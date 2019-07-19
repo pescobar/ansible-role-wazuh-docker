@@ -6,6 +6,10 @@
   assert:
     that: ansible_memtotal_mb >= 8192
     fail_msg: Wazuh requires more ram. Check https://documentation.wazuh.com/current/docker/wazuh-container.html#container-memory
+  when:
+    # we skip this check for CI tests
+    - ansible_virtualization_type != "docker"
+    - ansible_virtualization_type != "virtualbox"
 
 # https://documentation.wazuh.com/current/docker/wazuh-container.html#increase-max-map-count-on-your-host-linux
 - name: Configure vm.max_map_count
@@ -32,43 +36,69 @@
   pip:
     name: docker-compose
 
-- name: Install git
-  package:
-    name: git
-    state: installed
+
+# - name: Download the latest release of wazuh-docker repo to /opt/
+#   block:
+
+#     - name: Query what is the latest release of wazuh-docker
+#       uri:
+#         url: https://api.github.com/repos/wazuh/wazuh-docker/releases/latest
+#         method: GET
+#         return_content: yes
+#         status_code: 200
+#         body_format: json
+#       register: result_json
+#       changed_when: false
+
+#     - name: Create folder to uncompress the git repo
+#       file:
+#         path: "/opt/wazuh-docker-{{ (result_json.content|from_json).tag_name }}"
+#         state: directory
+
+#     - name: Create a symbolic link /opt/wazuh-docker
+#       file:
+#         src: "/opt/wazuh-docker-{{ (result_json.content|from_json).tag_name }}"
+#         dest: /opt/wazuh-docker
+#         state: link
+
+#     - name: Download the wazuh-docker git repository to /opt/wazuh-docker (latest release)
+#       unarchive:
+#         src: https://github.com/wazuh/wazuh-docker/archive/{{ (result_json.content|from_json).tag_name }}.tar.gz
+#         dest: /opt/wazuh-docker
+#         remote_src: yes
+#         extra_opts: ['--strip-components=1']
+#         creates: /opt/wazuh-docker/docker-compose.yml
+
+#   when: wazuh_docker_version == "latest"
 
 
-- name: Download the latest release of wazuh-docker repo to /opt/
+- name: Download custom release of wazuh-docker repo from github to /opt/
   block:
 
-    - name: Query what is the latest release of wazuh-docker
-      uri:
-        url: https://api.github.com/repos/wazuh/wazuh-docker/releases/latest
-        method: GET
-        return_content: yes
-        status_code: 200
-        body_format: json
-      register: result_json
-      changed_when: false
+    - name: Create folder to uncompress the git repo
+      file:
+        path: "/opt/wazuh-docker-{{ wazuh_docker_version }}"
+        state: directory
 
-    - name: Git clone the latest release of wazuh-docker to /opt
-      git:
+    - name: Create a symbolic link /opt/wazuh-docker
+      file:
+        src: "/opt/wazuh-docker-{{ wazuh_docker_version }}"
         dest: /opt/wazuh-docker
-        repo: https://github.com/wazuh/wazuh-docker.git
-        version: "{{ (result_json.content|from_json).tag_name }}"
+        state: link
 
-  when: wazuh_docker_version == "latest"
+    - name: Download the wazuh-docker git repository to /opt/wazuh-docker (custom release)
+      # the tag in github is identical to the tag in dockerhub but adding a "v" in front
+      unarchive:
+        src: https://github.com/wazuh/wazuh-docker/archive/v{{ wazuh_docker_version }}.tar.gz
+        dest: /opt/wazuh-docker
+        remote_src: yes
+        extra_opts: ['--strip-components=1']
+        creates: /opt/wazuh-docker/docker-compose.yml
 
-
-- name: Git clone a custom release of wazuh-docker to /opt
-  git:
-    dest: /opt/wazuh-docker
-    repo: https://github.com/wazuh/wazuh-docker.git
-    version: "{{ wazuh_docker_version }}"
   when: wazuh_docker_version != "latest"
 
-
-- name: Start the Wazuh containers
-  docker_service:
-    project_src: /opt/wazuh-docker
-    state: present
+- name: Deploy our docker-compose.yml file with our custom modifications
+  template:
+    dest: /opt/wazuh-docker/docker-compose.yml
+    src: docker-compose.yml.j2
+  notify: restart wazuh containers
