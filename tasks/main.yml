@@ -35,6 +35,7 @@
 - name: pip install docker-compose
   pip:
     name: docker-compose
+    version: 1.22.0 # this version fix is a workaround. See https://github.com/geerlingguy/ansible-role-docker/issues/129#issuecomment-513275135
 
 
 # - name: Download the latest release of wazuh-docker repo to /opt/
