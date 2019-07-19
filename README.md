@@ -3,32 +3,36 @@ ansible-role-wazuh-docker
 
 Deploy the official Wazuh docker containers from https://github.com/wazuh/wazuh-docker
 
-Requirements
-------------
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
-
 Role Variables
 --------------
+```
+wazuh_docker_install_docker_daemon: true
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+# https://documentation.wazuh.com/current/docker/wazuh-container.html#increase-max-map-count-on-your-host-linux
+wazuh_docker_max_map_count: 262144
+
+# this is the tag from dockerhub
+# https://hub.docker.com/r/wazuh/wazuh/tags
+wazuh_docker_version: "3.9.2_7.1.1"
+```
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+[geerlingguy.docker](https://galaxy.ansible.com/geerlingguy/docker)
+[robertdebock.selinux](https://galaxy.ansible.com/robertdebock/selinux)
+
+**the selinux role will reboot the host if selinux is enabled**
+
+By default the docker-daemon is installed. Use variable `wazuh_docker_install_docker_daemon: false` if you don't
+want to install the docker daemon
 
 Example Playbook
 ----------------
 
     - hosts: servers
       roles:
-         - { role: ansible-role-wazuh-docker, var_name: 42 }
-
-License
--------
-
-Apache
+         - { role: ansible-role-wazuh-docker }
 
 Author Information
 ------------------
